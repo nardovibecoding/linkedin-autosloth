@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=420, initial-scale=1.0">
+  <title>LinkedIn Auto Sloth</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-left">
+        <span class="logo">🦥</span>
+        <h1>LinkedIn Auto Sloth</h1>
+      </div>
+      <div class="header-right">
+        <span class="status-indicator" id="statusIndicator"></span>
+        <span class="status-text" id="statusText">Idle</span>
+      </div>
+    </header>
+
+    <!-- Environment Health -->
+    <section class="section env-section">
+      <div class="section-header">
+        <label class="section-label">🔍 DOM Check - Environment Changes</label>
+        <button class="btn-refresh" id="refreshEnvBtn" title="Refresh Detection">↻</button>
+      </div>
+      <div class="env-health-bar-container">
+        <div class="env-health-bar">
+          <div class="env-health-fill" id="envHealthFill" style="width: 0%"></div>
+        </div>
+        <span class="env-health-score" id="envHealthScore">—</span>
+      </div>
+      <div class="env-health-status" id="envHealthStatus">
+        <span class="env-health-text">Click refresh to check LinkedIn compatibility</span>
+      </div>
+    </section>
+
+    <!-- Quick Search Keywords -->
+    <section class="section">
+      <label class="section-label">Quick Search & Connect</label>
+      <div class="search-keywords" id="searchKeywords">
+        <button class="search-keyword-btn" data-keyword="Keyword 1">Keyword 1</button>
+        <button class="search-keyword-btn" data-keyword="Keyword 2">Keyword 2</button>
+        <button class="search-keyword-btn" data-keyword="Keyword 3">Keyword 3</button>
+        <button class="search-keyword-btn" data-keyword="Keyword 4">Keyword 4</button>
+      </div>
+      <div class="custom-search">
+        <input type="text" id="customKeyword" placeholder="Or type custom keyword...">
+        <button class="btn btn-small" id="searchCustomBtn">Search</button>
+      </div>
+      <div class="filter-info">
+        <span class="info-icon">💡</span>
+        <span>Click a keyword to search LinkedIn and auto-connect with results</span>
+      </div>
+    </section>
+
+    <!-- Message Template Section -->
+    <section class="section">
+      <div class="section-header">
+        <label class="section-label">Add a note</label>
+        <span class="char-count" id="charCount">0 / 300</span>
+      </div>
+      <textarea
+        id="messageTemplate"
+        class="template-textarea"
+        placeholder="Hi {{firstName}},
+
+I came across your profile and was impressed by your work at {{company}}. I'd love to connect and learn more about your experience.
+
+Best regards"
+        maxlength="300"
+      >Your Add A Note Text</textarea>
+      <div class="variable-pills">
+        <button class="variable-pill" data-var="firstName">&#123;&#123;firstName&#125;&#125;</button>
+        <button class="variable-pill" data-var="lastName">&#123;&#123;lastName&#125;&#125;</button>
+        <button class="variable-pill" data-var="company">&#123;&#123;company&#125;&#125;</button>
+        <button class="variable-pill" data-var="title">&#123;&#123;title&#125;&#125;</button>
+      </div>
+    </section>
+
+    <!-- Safety Controls -->
+    <section class="section">
+      <label class="section-label">Safety Controls</label>
+      <div class="safety-grid">
+        <div class="safety-item">
+          <label class="input-label">Daily Limit</label>
+          <div class="number-input-wrapper">
+            <button class="number-btn" onclick="adjustNumber('dailyLimit', -1)">−</button>
+            <input type="number" id="dailyLimit" value="40" min="1" max="100">
+            <button class="number-btn" onclick="adjustNumber('dailyLimit', 1)">+</button>
+          </div>
+        </div>
+        <div class="safety-item">
+          <label class="input-label">Min Delay (sec)</label>
+          <div class="number-input-wrapper">
+            <button class="number-btn" onclick="adjustNumber('minDelay', -1)">−</button>
+            <input type="number" id="minDelay" value="2" min="1" max="30">
+            <button class="number-btn" onclick="adjustNumber('minDelay', 1)">+</button>
+          </div>
+        </div>
+        <div class="safety-item">
+          <label class="input-label">Max Delay (sec)</label>
+          <div class="number-input-wrapper">
+            <button class="number-btn" onclick="adjustNumber('maxDelay', -1)">−</button>
+            <input type="number" id="maxDelay" value="3" min="2" max="60">
+            <button class="number-btn" onclick="adjustNumber('maxDelay', 1)">+</button>
+          </div>
+        </div>
+      </div>
+      <div class="safety-warning">
+        <span class="warning-icon">⚠️</span>
+        <span>LinkedIn weekly limit: ~100 invites. Recommended: 15-25/day</span>
+      </div>
+    </section>
+
+    <!-- Action Buttons -->
+    <section class="section action-section">
+      <button class="btn btn-primary" id="toggleBtn">
+        <span class="btn-icon">▶</span>
+        <span class="btn-text">Run All Keywords</span>
+      </button>
+      <button class="btn btn-secondary" id="resetBtn">
+        <span class="btn-icon">↺</span>
+        Reset Counter
+      </button>
+      <div class="filter-info">
+        <span class="info-icon">💡</span>
+        <span>Cycles through all keyword buttons above in sequence. To connect with one keyword only, click its button directly.</span>
+      </div>
+    </section>
+
+    <!-- ═══ DM AUTO-REPLY GROUP ═══ -->
+    <div class="group-divider">
+      <span class="group-divider-text">💬 DM Auto-Reply</span>
+    </div>
+
+    <!-- Auto Reply DM Template -->
+    <section class="section">
+      <div class="section-header">
+        <label class="section-label">Auto Reply DMs</label>
+        <span class="char-count" id="dmCharCount">0 / 500</span>
+      </div>
+      <textarea
+        id="dmReplyTemplate"
+        class="template-textarea"
+        placeholder="Hi {{firstName}},
+
+Thanks for reaching out! I'd be happy to chat more about this.
+
+Best regards"
+        maxlength="500"
+      >Your Reply Text</textarea>
+      <div class="variable-pills">
+        <button class="variable-pill dm-pill" data-var="firstName">&#123;&#123;firstName&#125;&#125;</button>
+        <button class="variable-pill dm-pill" data-var="lastName">&#123;&#123;lastName&#125;&#125;</button>
+      </div>
+      <div class="dm-rules">
+        <span class="info-icon">📋</span>
+        <span class="dm-rules-text">Reply if (1) they sent a message with no response, or (2) the last message in the conversation is 7+ days old</span>
+      </div>
+      <div class="dm-buttons">
+        <button class="btn btn-dm-check" id="checkCurrentBtn">
+          <span class="btn-icon">▶</span>
+          <span class="btn-text">Reply From Selected Chat</span>
+        </button>
+        <button class="btn btn-dm" id="autoReplyBtn">
+          <span class="btn-icon">💬</span>
+          <span class="btn-text">Auto Reply All DMs</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- Statistics & Logs -->
+    <section class="section">
+      <div class="stats-bar">
+        <div class="stat-item">
+          <span class="stat-label">Sent Today:</span>
+          <span class="stat-value" id="sentCount">0</span>
+          <span class="stat-divider">/</span>
+          <span class="stat-value" id="limitCount">20</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Processed:</span>
+          <span class="stat-value" id="processedCount">0</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">DM Replied:</span>
+          <span class="stat-value" id="dmRepliedCount">0</span>
+        </div>
+      </div>
+      <div class="log-container">
+        <div class="log-header">
+          <span>Activity Log</span>
+          <button class="clear-log-btn" id="clearLogBtn">Clear</button>
+        </div>
+        <div class="log-entries" id="logEntries">
+          <div class="log-entry log-info">Ready to start automation</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <span>⚡ Use responsibly to avoid account restrictions</span>
+    </footer>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
