@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Nardo. AGPL-3.0 — see LICENSE
 // LinkedIn Connection Assistant - Background Service Worker
 // Handles state management, timer, and cross-tab communication
 

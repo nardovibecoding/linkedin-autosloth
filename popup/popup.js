@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Nardo. AGPL-3.0 — see LICENSE
 // LinkedIn Connection Assistant - Popup Script (v5)
 
 class LinkedInAssistantPopup {

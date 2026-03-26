@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Nardo. AGPL-3.0 — see LICENSE
 // LinkedIn Connection Assistant - Content Script (v7)
 // DM Rules (mutually exclusive):
 //   Rule 1: Blue dot / unread indicator on conversation → REPLY
