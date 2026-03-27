@@ -7,6 +7,8 @@
   ![JavaScript](https://img.shields.io/badge/Vanilla_JS-F7DF1E?logo=javascript&logoColor=black)
   ![License](https://img.shields.io/badge/license-AGPL--3.0-blue)
   ![Status](https://img.shields.io/badge/status-proof_of_concept-orange)
+
+  <img src="demo-popup.png" alt="LinkedIn Auto Sloth popup UI" width="400">
 </div>
 
 > **Disclaimer:** For educational purposes only. Automated actions on LinkedIn violate their Terms of Service. Account restrictions are a real risk. Use at your own discretion.
