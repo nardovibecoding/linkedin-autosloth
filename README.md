@@ -3,7 +3,7 @@
   <p><strong>Chrome extension that automates LinkedIn connection requests and DM follow-ups.</strong></p>
   <p>Built for Web3 BD — works for any high-volume outreach workflow.</p>
 
-  ![Chrome](https://img.shields.io/badge/Chrome-Manifest_V3-4285F4?logo=googlechrome&logoColor=white)
+  ![Chromium](https://img.shields.io/badge/Chromium-Manifest_V3-4285F4?logo=googlechrome&logoColor=white)
   ![JavaScript](https://img.shields.io/badge/Vanilla_JS-F7DF1E?logo=javascript&logoColor=black)
   ![License](https://img.shields.io/badge/license-AGPL--3.0-blue)
   ![Status](https://img.shields.io/badge/status-proof_of_concept-orange)
@@ -51,7 +51,7 @@ All decisions made from the sidebar. Opens the conversation only to type and sen
    ```bash
    git clone https://github.com/nardovibecoding/linkedin-autosloth.git
    ```
-2. Open `chrome://extensions/` in Chrome
+2. Open `chrome://extensions/` in any Chromium browser (Chrome, Edge, Brave, Arc, Opera)
 3. Enable **Developer Mode** (top right toggle)
 4. Click **Load unpacked** → select the repo folder
 5. Navigate to LinkedIn — the extension icon appears in your toolbar
