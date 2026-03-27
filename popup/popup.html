@@ -71,7 +71,7 @@ I came across your profile and was impressed by your work at {{company}}. I'd lo
 
 Best regards"
         maxlength="300"
-      >Your Add A Note Text</textarea>
+      ></textarea>
       <div class="variable-pills">
         <button class="variable-pill" data-var="firstName">&#123;&#123;firstName&#125;&#125;</button>
         <button class="variable-pill" data-var="lastName">&#123;&#123;lastName&#125;&#125;</button>
@@ -87,25 +87,25 @@ Best regards"
         <div class="safety-item">
           <label class="input-label">Daily Limit</label>
           <div class="number-input-wrapper">
-            <button class="number-btn" onclick="adjustNumber('dailyLimit', -1)">−</button>
+            <button class="number-btn" data-target="dailyLimit" data-delta="-1">−</button>
             <input type="number" id="dailyLimit" value="40" min="1" max="100">
-            <button class="number-btn" onclick="adjustNumber('dailyLimit', 1)">+</button>
+            <button class="number-btn" data-target="dailyLimit" data-delta="1">+</button>
           </div>
         </div>
         <div class="safety-item">
           <label class="input-label">Min Delay (sec)</label>
           <div class="number-input-wrapper">
-            <button class="number-btn" onclick="adjustNumber('minDelay', -1)">−</button>
+            <button class="number-btn" data-target="minDelay" data-delta="-1">−</button>
             <input type="number" id="minDelay" value="2" min="1" max="30">
-            <button class="number-btn" onclick="adjustNumber('minDelay', 1)">+</button>
+            <button class="number-btn" data-target="minDelay" data-delta="1">+</button>
           </div>
         </div>
         <div class="safety-item">
           <label class="input-label">Max Delay (sec)</label>
           <div class="number-input-wrapper">
-            <button class="number-btn" onclick="adjustNumber('maxDelay', -1)">−</button>
+            <button class="number-btn" data-target="maxDelay" data-delta="-1">−</button>
             <input type="number" id="maxDelay" value="3" min="2" max="60">
-            <button class="number-btn" onclick="adjustNumber('maxDelay', 1)">+</button>
+            <button class="number-btn" data-target="maxDelay" data-delta="1">+</button>
           </div>
         </div>
       </div>
@@ -151,7 +151,7 @@ Thanks for reaching out! I'd be happy to chat more about this.
 
 Best regards"
         maxlength="500"
-      >Your Reply Text</textarea>
+      ></textarea>
       <div class="variable-pills">
         <button class="variable-pill dm-pill" data-var="firstName">&#123;&#123;firstName&#125;&#125;</button>
         <button class="variable-pill dm-pill" data-var="lastName">&#123;&#123;lastName&#125;&#125;</button>

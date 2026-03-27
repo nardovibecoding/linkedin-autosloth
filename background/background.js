@@ -25,17 +25,18 @@ class LinkedInAssistantBackground {
       return true;
     });
 
-    // Listen for tab updates
-    chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-      if (changeInfo.status === 'complete' && tab.url && tab.url.includes('linkedin.com')) {
-        // Tab navigation detected, might need to reset state
-      }
-    });
-
     // Listen for tab closure
     chrome.tabs.onRemoved.addListener((tabId, removeInfo) => {
       if (tabId === this.currentTabId) {
         this.stop();
+      }
+    });
+
+    // Restore state from storage (MV3 service workers get terminated)
+    chrome.storage.local.get(['bgState'], (result) => {
+      if (result.bgState) {
+        this.isRunning = result.bgState.isRunning || false;
+        this.currentTabId = result.bgState.tabId || null;
       }
     });
 
@@ -50,9 +51,9 @@ class LinkedInAssistantBackground {
       filter3rd: true,
       enableKeywordFilter: true,
       keywordList: 'Keyword 1, Keyword 2, Keyword 3, Keyword 4',
-      dailyLimit: 20,
-      minDelay: 30,
-      maxDelay: 90
+      dailyLimit: 40,
+      minDelay: 2,
+      maxDelay: 5
     };
 
     const defaultStats = {
@@ -107,6 +108,7 @@ class LinkedInAssistantBackground {
 
     this.isRunning = true;
     this.currentTabId = tabId;
+    await chrome.storage.local.set({ bgState: { isRunning: true, tabId } });
 
     console.log('Starting automation on tab:', tabId);
 
@@ -131,6 +133,7 @@ class LinkedInAssistantBackground {
     console.log('Stopping automation');
 
     this.isRunning = false;
+    await chrome.storage.local.set({ bgState: { isRunning: false, tabId: null } });
 
     // Send stop message to content script
     if (this.currentTabId) {

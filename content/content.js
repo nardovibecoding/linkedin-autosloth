@@ -7,8 +7,16 @@
 
 (function () {
   if (window.__linkedinAssistantInstance) {
-    console.log('[LI-Assist] Already initialized, skipping duplicate');
-    return;
+    // Verify the existing instance is still functional (not from stale extension context)
+    try {
+      chrome.runtime.getURL('');
+      console.log('[LI-Assist] Already initialized, skipping duplicate');
+      return;
+    } catch (e) {
+      // Extension context invalidated — clean up and re-init
+      console.log('[LI-Assist] Stale instance detected, re-initializing');
+      window.__linkedinAssistantInstance = null;
+    }
   }
 
   class LinkedInContentScript {
@@ -19,7 +27,6 @@
       this.stats = { sent: 0, processed: 0, dmReplied: 0, lastResetDate: null };
       this.processedProfiles = new Set();
       this.repliedConversations = new Set(); // Reset each DM run
-      this.sentMessages = new Map();
 
       this.keywords = [];
       this.currentKeywordIndex = 0;
@@ -110,12 +117,11 @@
     async loadData() {
       try {
         const result = await new Promise(resolve =>
-          chrome.storage.local.get(['settings', 'stats', 'processedProfiles', 'sentMessages'], resolve)
+          chrome.storage.local.get(['settings', 'stats', 'processedProfiles'], resolve)
         );
         if (result.settings) this.settings = result.settings;
         if (result.stats) this.stats = { ...this.stats, ...result.stats };
         if (result.processedProfiles) this.processedProfiles = new Set(result.processedProfiles);
-        if (result.sentMessages) this.sentMessages = new Map(Object.entries(result.sentMessages));
 
         const today = new Date().toDateString();
         if (this.stats.lastResetDate !== today) {
@@ -129,10 +135,14 @@
     }
 
     async saveData() {
+      // Cap processedProfiles to prevent unbounded storage growth
+      const maxProfiles = 5000;
+      const profiles = Array.from(this.processedProfiles);
+      const trimmed = profiles.length > maxProfiles ? profiles.slice(-maxProfiles) : profiles;
+
       await chrome.storage.local.set({
         stats: this.stats,
-        processedProfiles: Array.from(this.processedProfiles),
-        sentMessages: Object.fromEntries(this.sentMessages)
+        processedProfiles: trimmed,
       });
     }
 
@@ -304,6 +314,13 @@
      * Get the name from a conversation list item (helper)
      */
     getItemName(item) {
+      // Prefer profile URL as unique key (handles duplicate names)
+      const link = item.querySelector('a[href*="/in/"], a[href*="/messaging/thread/"]');
+      if (link) {
+        const href = link.getAttribute('href');
+        if (href) return href.split('?')[0];
+      }
+      // Fallback to display name
       const nameEl = item.querySelector('h3.msg-conversation-listitem__participant-names');
       if (!nameEl) return '';
       const span = nameEl.querySelector('span.truncate');
@@ -579,16 +596,13 @@
         }
       }
 
-      // Method 5: Scan for any element containing "unread" in class
-      const allEls = item.querySelectorAll('*');
-      for (const el of allEls) {
-        const cls = el.className;
-        if (cls && typeof cls === 'string' && cls.includes('unread')) {
-          const style = window.getComputedStyle(el);
-          if (style.display !== 'none' && style.visibility !== 'hidden') {
-            console.log(`[LI-Assist] Unread: found class containing "unread":`, cls);
-            return true;
-          }
+      // Method 5: Check for unread class on known element patterns (not querySelectorAll('*'))
+      const unreadEl = item.querySelector('[class*="unread"]');
+      if (unreadEl) {
+        const style = window.getComputedStyle(unreadEl);
+        if (style.display !== 'none' && style.visibility !== 'hidden') {
+          console.log(`[LI-Assist] Unread: found class containing "unread":`, unreadEl.className);
+          return true;
         }
       }
 
@@ -667,8 +681,8 @@
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       text = text.trim();
 
-      // ISO datetime (from <time datetime="...">)
-      if (text.includes('T') || text.includes('-')) {
+      // ISO datetime (from <time datetime="...">) — require proper ISO format
+      if (/^\d{4}-\d{2}-\d{2}/.test(text)) {
         const d = new Date(text);
         if (!isNaN(d.getTime())) return d;
       }
@@ -732,11 +746,6 @@
     // ─── Send DM Reply ────────────────────────────────────────────────────────
 
     async sendDmReply(conv) {
-      // Mark as replied first to prevent double-sends
-      this.repliedConversations.add(conv.name);
-      this.sentMessages.set(conv.name, Date.now());
-      await this.saveRepliedConversations();
-      await this.saveData();
 
       const message = this.parseDmTemplate(this.settings.dmReplyTemplate, conv);
       if (!message || !message.trim()) {
@@ -760,26 +769,19 @@
 
       // Type message using multiple approaches
 
-      // A: innerHTML with <p> tag
-      messageInput.innerHTML = `<p>${message}</p>`;
+      // Type message — use execCommand (safe, no innerHTML XSS)
+      messageInput.focus();
+      await this.sleep(100);
+      try {
+        document.execCommand('selectAll', false, null);
+        document.execCommand('insertText', false, message);
+      } catch (e) {
+        // Fallback: set textContent (safe) + dispatch input event
+        messageInput.textContent = message;
+      }
       messageInput.dispatchEvent(new Event('input', { bubbles: true }));
       messageInput.dispatchEvent(new Event('change', { bubbles: true }));
       await this.sleep(300);
-
-      // B: execCommand insertText
-      try {
-        messageInput.focus();
-        document.execCommand('selectAll', false, null);
-        document.execCommand('insertText', false, message);
-      } catch (e) {}
-      await this.sleep(300);
-
-      // C: InputEvent for React
-      messageInput.dispatchEvent(new InputEvent('input', {
-        bubbles: true, cancelable: true,
-        inputType: 'insertText', data: message
-      }));
-      await this.sleep(200);
 
       // Blur + refocus to trigger state update
       messageInput.blur();
@@ -811,14 +813,24 @@
       this.log('Send button disabled, trying Enter...', 'warning');
       messageInput.focus();
       await this.sleep(200);
+
+      // Check if there's actually text in the input before pressing Enter
+      const hasText = messageInput.textContent && messageInput.textContent.trim().length > 0;
+      if (!hasText) {
+        this.log(`✗ Could not send to: ${conv.name} — input empty`, 'error');
+        return false;
+      }
+
       messageInput.dispatchEvent(new KeyboardEvent('keydown', {
         key: 'Enter', code: 'Enter', keyCode: 13, which: 13,
         bubbles: true, cancelable: true
       }));
       await this.sleep(1000);
 
-      const btnAfter = this.findSendButton();
-      if (!btnAfter || btnAfter.disabled) {
+      // Verify the input was cleared (indicates message was sent)
+      const inputAfter = this.findMessageInput();
+      const inputCleared = !inputAfter || !inputAfter.textContent || inputAfter.textContent.trim() === '';
+      if (inputCleared) {
         this.stats.dmReplied = (this.stats.dmReplied || 0) + 1;
         await this.saveData();
         this.log(`✓ Replied to: ${conv.name} (via Enter)`, 'success');
@@ -1048,6 +1060,12 @@
         const pageMatch = currentUrl.match(/[?&]page=(\d+)/i);
         const currentPage = pageMatch ? parseInt(pageMatch[1]) : 1;
         const nextPage = currentPage + 1;
+
+        if (nextPage > 40) {
+          this.log('Max pagination reached (40 pages). Moving to next keyword...', 'info');
+          await this.moveToNextKeyword();
+          return false;
+        }
 
         let newUrl;
         if (pageMatch) {
@@ -1497,14 +1515,16 @@
       let sendWithoutNoteBtn = null;
       let sendBtn = null;
 
-      // Helper to get all search roots (including shadow DOM)
+      // Helper to get search roots (check known shadow hosts, not all elements)
       const getSearchRoots = () => {
         const roots = [document];
-        const shadowHost = document.querySelector('.theme--light');
-        if (shadowHost && shadowHost.shadowRoot) roots.push(shadowHost.shadowRoot);
-        document.querySelectorAll('*').forEach(el => {
-          if (el.shadowRoot && !roots.includes(el.shadowRoot)) roots.push(el.shadowRoot);
-        });
+        const knownHosts = ['.theme--light', '[class*="artdeco-modal"]', '#artdeco-modal-outlet'];
+        for (const sel of knownHosts) {
+          const host = document.querySelector(sel);
+          if (host && host.shadowRoot && !roots.includes(host.shadowRoot)) {
+            roots.push(host.shadowRoot);
+          }
+        }
         return roots;
       };
 
@@ -1637,8 +1657,10 @@
     // ─── Utility ──────────────────────────────────────────────────────────────
 
     getRandomDelay() {
-      const min = ((this.settings && this.settings.minDelay) || 2) * 1000;
-      const max = ((this.settings && this.settings.maxDelay) || 3) * 1000;
+      let min = ((this.settings && this.settings.minDelay) || 2) * 1000;
+      let max = ((this.settings && this.settings.maxDelay) || 3) * 1000;
+      if (min > max) { const tmp = min; min = max; max = tmp; }
+      if (min < 1000) min = 1000; // Floor: 1 second minimum
       const shouldPauseLonger = Math.random() < 0.05;
       const extraPause = shouldPauseLonger ? Math.random() * 1000 : 0;
       return Math.floor(Math.random() * (max - min)) + min + extraPause;

@@ -30,16 +30,13 @@ class LinkedInAssistantPopup {
     await this.loadRunningState();
     this.setupEventListeners();
     
-    // Force update settings to new defaults
-    const newTemplate = `Your Add A Note Text`;
-
-    const newDmTemplate = `Your Reply Text`;
-    
-    this.settings.template = newTemplate;
-    this.settings.dmReplyTemplate = newDmTemplate;
-    this.settings.minDelay = 2;
-    this.settings.maxDelay = 3;
-    this.settings.dailyLimit = 40;
+    // Only set defaults if settings are empty/first run
+    if (!this.settings.template || this.settings.template === 'Your Add A Note Text') {
+      this.settings.template = `Hi {{firstName}},\n\nI came across your profile and was impressed by your work at {{company}}. I'd love to connect.\n\nBest regards`;
+    }
+    if (!this.settings.dmReplyTemplate || this.settings.dmReplyTemplate === 'Your Reply Text') {
+      this.settings.dmReplyTemplate = `Hi {{firstName}},\n\nThanks for connecting! I'd be happy to chat more.\n\nBest regards`;
+    }
     await this.saveSettings();
     
     this.updateUI();
@@ -438,42 +435,6 @@ class LinkedInAssistantPopup {
     }
   }
 
-  async ensureContentScript(tabId) {
-    try {
-      const response = await chrome.tabs.sendMessage(tabId, { action: 'ping' });
-      if (response && response.alive) {
-        return true;
-      }
-    } catch (e) {}
-
-    try {
-      await chrome.scripting.executeScript({
-        target: { tabId: tabId },
-        files: ['content/content.js']
-      });
-      await chrome.scripting.insertCSS({
-        target: { tabId: tabId },
-        files: ['content/content.css']
-      });
-    } catch (e) {
-      this.log('Injection error: ' + e.message, 'error');
-      return false;
-    }
-
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    try {
-      const response = await chrome.tabs.sendMessage(tabId, { action: 'ping' });
-      if (response && response.alive) {
-        return true;
-      }
-    } catch (e) {
-      return false;
-    }
-
-    return false;
-  }
-
   async startAutomation() {
     if (this.stats.sent >= this.settings.dailyLimit) {
       this.log('Daily limit reached. Please reset or wait for tomorrow.', 'warning');
@@ -686,7 +647,10 @@ class LinkedInAssistantPopup {
 
     const entry = document.createElement('div');
     entry.className = `log-entry log-${type}`;
-    entry.innerHTML = `<span>[${timestamp}]</span> ${message}`;
+    const span = document.createElement('span');
+    span.textContent = `[${timestamp}]`;
+    entry.appendChild(span);
+    entry.appendChild(document.createTextNode(` ${message}`));
 
     logEntries.appendChild(entry);
     logEntries.scrollTop = logEntries.scrollHeight;
@@ -742,19 +706,25 @@ class LinkedInAssistantPopup {
   }
 }
 
-function adjustNumber(id, delta) {
-  const input = document.getElementById(id);
-  let value = parseInt(input.value) || 20;
-  let newValue = value + delta;
-
-  const min = parseInt(input.min) || 1;
-  const max = parseInt(input.max) || 999;
-
-  if (newValue >= min && newValue <= max) {
-    input.value = newValue;
-    input.dispatchEvent(new Event('change'));
-  }
-}
+// Number button handlers (no global function, no inline onclick)
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.number-btn[data-target]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.target;
+      const delta = parseInt(btn.dataset.delta) || 0;
+      const input = document.getElementById(id);
+      if (!input) return;
+      let value = parseInt(input.value) || 0;
+      let newValue = value + delta;
+      const min = parseInt(input.min) || 1;
+      const max = parseInt(input.max) || 999;
+      if (newValue >= min && newValue <= max) {
+        input.value = newValue;
+        input.dispatchEvent(new Event('change'));
+      }
+    });
+  });
+});
 
 // Initialize popup
 document.addEventListener('DOMContentLoaded', () => {
