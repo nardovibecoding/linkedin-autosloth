@@ -5,7 +5,7 @@
 
   ![Chrome](https://img.shields.io/badge/Chrome-Manifest_V3-4285F4?logo=googlechrome&logoColor=white)
   ![JavaScript](https://img.shields.io/badge/Vanilla_JS-F7DF1E?logo=javascript&logoColor=black)
-  ![License](https://img.shields.io/badge/license-MIT-green)
+  ![License](https://img.shields.io/badge/license-AGPL--3.0-blue)
   ![Status](https://img.shields.io/badge/status-proof_of_concept-orange)
 </div>
 
@@ -49,7 +49,7 @@ All decisions made from the sidebar. Opens the conversation only to type and sen
 
 1. Clone this repo:
    ```bash
-   git clone https://github.com/nardovibecoding/LinkedinAutoSloth.git
+   git clone https://github.com/nardovibecoding/linkedin-autosloth.git
    ```
 2. Open `chrome://extensions/` in Chrome
 3. Enable **Developer Mode** (top right toggle)
@@ -123,4 +123,4 @@ Popup UI (popup.js)
 
 ## License
 
-MIT — see [LICENSE](LICENSE)
+AGPL-3.0 — see [LICENSE](LICENSE)
